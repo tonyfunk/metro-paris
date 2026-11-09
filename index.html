@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prochains métros · Paris</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon-180.png">
+<meta name="theme-color" content="#0d1b3d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Métro">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+:root{--bg:#f2f4f7;--card:#fff;--ink:#14213d;--mute:#6b7690;--line:#d8dde6;--board:#0d1b3d;--amber:#ffb703}
+@media (prefers-color-scheme:dark){:root{--bg:#0a1226;--card:#121d3a;--ink:#eef1f8;--mute:#8d9ab8;--line:#24325a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 "Helvetica Neue",Arial,sans-serif;padding:calc(env(safe-area-inset-top) + 8px) 16px calc(env(safe-area-inset-bottom) + 32px)}
+main{max-width:480px;margin:0 auto}
+h1{font-size:1.25rem;margin:24px 0 16px}
+.lines{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:16px}
+.lines button{aspect-ratio:1;border:3px solid transparent;border-radius:50%;font:700 1rem/1 inherit;color:#fff;cursor:pointer;padding:0}
+.lines button[aria-pressed=true]{border-color:var(--ink);transform:scale(1.08)}
+.lines button:focus-visible,select:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+select{width:100%;padding:14px;font-size:1rem;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.board{margin-top:20px;background:var(--board);color:#fff;border-radius:14px;overflow:hidden}
+.dir{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 18px;border-top:1px solid #ffffff22}
+.dir:first-child{border-top:0}
+.dir b{font-size:1.05rem;font-weight:600}
+.dir small{display:block;color:#9fb0d6;font-size:.8rem;font-weight:400}
+.t{display:flex;gap:16px;text-align:right}
+.t span{font:700 1.9rem/1 inherit;color:var(--amber);min-width:3.2ch}
+.t span i{font-size:.8rem;font-style:normal;margin-left:2px}
+.t span.sch{color:#c9d3ee}
+.msg{padding:20px;color:var(--mute)}
+.foot{margin-top:12px;color:var(--mute);font-size:.8rem}
+</style>
+</head>
+<body>
+<main>
+  <h1>Prochains métros</h1>
+  <div class="lines" id="lines" role="group" aria-label="Ligne"></div>
+  <select id="stations" aria-label="Station" disabled><option>Choisis d'abord une ligne</option></select>
+  <div class="board" id="board" hidden aria-live="polite"></div>
+  <p class="foot" id="foot"></p>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const store = { get:k=>{try{return localStorage.getItem(k)}catch{return null}}, set:(k,v)=>{try{localStorage.setItem(k,v)}catch{}} };
+let line = null, stop = null, timer = null;
+
+const api = async (p) => { const r = await fetch(p); if (!r.ok) throw new Error(r.status); return r.json(); };
+
+async function init() {
+  try {
+    const lines = await api("/api/lines");
+    $("lines").innerHTML = "";
+    for (const l of lines) {
+      const b = document.createElement("button");
+      b.textContent = l.code; b.style.background = l.color; b.dataset.id = l.id;
+      b.setAttribute("aria-label", "Ligne " + l.code); b.setAttribute("aria-pressed", "false");
+      b.onclick = () => pickLine(l.id);
+      $("lines").append(b);
+    }
+    const last = store.get("line"); if (last) await pickLine(last, store.get("stop"));
+  } catch { $("foot").textContent = "Impossible de charger les lignes. Vérifie ta clé PRIM et relance le serveur."; }
+}
+
+async function pickLine(id, restoreStop) {
+  line = id; store.set("line", id);
+  document.querySelectorAll("#lines button").forEach(b => b.setAttribute("aria-pressed", b.dataset.id === id));
+  $("board").hidden = true; clearInterval(timer);
+  const sel = $("stations"); sel.disabled = true; sel.innerHTML = "<option>Chargement…</option>";
+  try {
+    const st = await api("/api/stations?line=" + encodeURIComponent(id));
+    sel.innerHTML = '<option value="">Choisis ta station</option>' + st.map(s => `<option value="${s.id}">${s.name}</option>`).join("");
+    sel.disabled = false;
+    if (restoreStop && st.some(s => s.id === restoreStop)) { sel.value = restoreStop; pickStop(restoreStop); }
+  } catch { sel.innerHTML = "<option>Erreur de chargement</option>"; }
+}
+
+async function refresh() {
+  if (!line || !stop) return;
+  const b = $("board");
+  try {
+    const d = await api(`/api/next?line=${encodeURIComponent(line)}&stop=${encodeURIComponent(stop)}`);
+    b.innerHTML = d.length ? d.map(x => `
+      <div class="dir"><b><small>Direction</small>${x.direction}</b>
+      <div class="t">${x.times.map(t => `<span class="${t.realtime ? "" : "sch"}">${t.mins === 0 ? "À quai" : t.mins}${t.mins ? "<i>min</i>" : ""}</span>`).join("")}</div></div>`).join("")
+      : '<div class="msg">Aucun passage prévu pour le moment.</div>';
+    $("foot").textContent = "Mis à jour à " + new Date().toLocaleTimeString("fr-FR", {hour:"2-digit", minute:"2-digit"}) + " · en clair = horaire théorique";
+  } catch { b.innerHTML = '<div class="msg">Données indisponibles. Nouvel essai dans 30 s.</div>'; }
+  b.hidden = false;
+}
+
+function pickStop(id) {
+  stop = id; store.set("stop", id); clearInterval(timer);
+  if (!id) { $("board").hidden = true; return; }
+  refresh(); timer = setInterval(refresh, 30000);
+}
+
+$("stations").onchange = e => pickStop(e.target.value);
+init();
+</script>
+</body>
+</html>
