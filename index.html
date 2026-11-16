@@ -6,122 +6,199 @@
 <title>Prochains métros · Paris</title>
 <link rel="manifest" href="/manifest.json">
 <link rel="apple-touch-icon" href="/icon-180.png">
-<meta name="theme-color" content="#0d1b3d">
+<meta name="theme-color" content="#0b1630">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Métro">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f2f4f7;--card:#fff;--ink:#14213d;--mute:#6b7690;--line:#d8dde6;--board:#0d1b3d;--amber:#ffb703}
-@media (prefers-color-scheme:dark){:root{--bg:#0a1226;--card:#121d3a;--ink:#eef1f8;--mute:#8d9ab8;--line:#24325a}}
+:root{
+  --bg:#0b1630; --panel:#13214a; --panel-2:#0f1c3f; --ink:#f4f6fb; --mute:#8e9cc4; --rule:#ffffff14;
+  --amber:#ffc229; --green:#3ccf7a; --red:#ff5a5f; --line:#3b5bdb; --line-ink:#fff;
+}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 "Helvetica Neue",Arial,sans-serif;padding:calc(env(safe-area-inset-top) + 8px) 16px calc(env(safe-area-inset-bottom) + 32px)}
+html{background:var(--bg)}
+body{margin:0;min-height:100vh;color:var(--ink);font:500 16px/1.35 Barlow,"Helvetica Neue",Arial,sans-serif;
+  background:radial-gradient(120% 60% at 50% -10%, color-mix(in srgb,var(--line) 28%,transparent), transparent 70%) var(--bg);
+  padding:calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 32px);transition:background .4s}
 main{max-width:480px;margin:0 auto}
-h1{font-size:1.25rem;margin:24px 0 16px}
-.lines{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:16px}
-.lines button{aspect-ratio:1;border:3px solid transparent;border-radius:50%;font:700 1rem/1 inherit;color:#fff;cursor:pointer;padding:0}
-.lines button[aria-pressed=true]{border-color:var(--ink);transform:scale(1.08)}
-.lines button:focus-visible,select:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
-select{width:100%;padding:14px;font-size:1rem;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
-.board{margin-top:20px;background:var(--board);color:#fff;border-radius:14px;overflow:hidden}
-.dir{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 18px;border-top:1px solid #ffffff22}
-.dir:first-child{border-top:0}
-.dir b{font-size:1.05rem;font-weight:600}
-.dir small{display:block;color:#9fb0d6;font-size:.8rem;font-weight:400}
-.t{display:flex;gap:16px;text-align:right}
-.t span{font:700 1.9rem/1 inherit;color:var(--amber);min-width:3.2ch}
-.t span i{font-size:.8rem;font-style:normal;margin-left:2px}
-.t span.sch{color:#c9d3ee}
-.msg{padding:20px;color:var(--mute)}
-.foot{margin-top:12px;color:var(--mute);font-size:.8rem}
-.status{margin-top:12px;border-radius:12px;padding:12px 14px;background:var(--card);border:1px solid var(--line);font-size:.9rem}
-.status.ok{display:flex;align-items:center;gap:8px;color:var(--mute)}
-.status.ok::before{content:"";width:10px;height:10px;border-radius:50%;background:#2a9d4b}
-.status.warn{border-left:4px solid var(--amber)}
-.status.sev{border-left:4px solid #e63946}
-.status b{display:block}
-.status p{margin:4px 0 0;color:var(--mute);white-space:pre-line}
-.status div+div{margin-top:10px}
+button,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+
+/* En-tête façon signalétique */
+header{display:flex;align-items:center;gap:10px;margin:8px 0 20px}
+.logo{width:34px;height:34px;border-radius:50%;border:2.5px solid var(--ink);display:grid;place-items:center;font:800 1.1rem/1 Barlow,sans-serif}
+header h1{margin:0;font-size:1.35rem;font-weight:700;letter-spacing:.01em}
+header h1 span{color:var(--mute);font-weight:500}
+
+/* Sélecteur de lignes */
+.label{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);font-weight:600;margin:0 0 10px}
+.lines{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-bottom:22px}
+.lines button{aspect-ratio:1;border:0;border-radius:50%;font-weight:800;font-size:1.05rem;cursor:pointer;padding:0;
+  box-shadow:0 2px 0 #0004 inset,0 3px 10px #0003;transition:transform .15s,opacity .2s,box-shadow .2s}
+.lines button:active{transform:scale(.92)}
+.lines.has-sel button{opacity:.38}
+.lines.has-sel button[aria-pressed=true]{opacity:1;transform:scale(1.1);box-shadow:0 0 0 3px var(--bg),0 0 0 5px var(--ink)}
+
+/* Station */
+.station{position:relative;display:flex;align-items:center;gap:12px;background:var(--panel);border-radius:14px;padding:6px 14px 6px 8px;border:1px solid var(--rule)}
+.station .badge{width:38px;height:38px;font-size:1.05rem}
+.station select{appearance:none;-webkit-appearance:none;flex:1;min-width:0;background:transparent;border:0;padding:12px 28px 12px 0;font-size:1.15rem;font-weight:700;cursor:pointer}
+.station select:disabled{color:var(--mute);cursor:default}
+.station select option{color:#000}
+.station::after{content:"";position:absolute;right:16px;top:50%;width:8px;height:8px;border:solid var(--mute);border-width:0 2px 2px 0;transform:translateY(-70%) rotate(45deg);pointer-events:none}
+.badge{flex:none;display:grid;place-items:center;border-radius:50%;background:var(--line);color:var(--line-ink);font-weight:800}
+
+/* Tableau des départs */
+.board{margin-top:16px;background:linear-gradient(#0a1229,#0d1736);border-radius:16px;overflow:hidden;border:1px solid var(--rule);box-shadow:0 10px 30px #0006}
+.board-head{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:#060c1f;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);font-weight:600}
+.live{display:flex;align-items:center;gap:6px;color:var(--amber)}
+.live::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--amber);animation:pulse 1.6s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 #ffc22999}100%{box-shadow:0 0 0 8px #ffc22900}}
+.dir{position:relative;padding:16px 16px 16px 22px;border-top:1px solid var(--rule)}
+.dir:first-of-type{border-top:0}
+.dir::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:5px;border-radius:0 4px 4px 0;background:var(--line)}
+.dir .to{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);font-weight:600}
+.dir .name{font-size:1.15rem;font-weight:700;margin:2px 0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t{display:flex;gap:10px}
+.t span{flex:1;max-width:120px;background:#000a;border-radius:8px;padding:8px 10px;font-weight:700;font-size:2rem;line-height:1;color:var(--amber);font-variant-numeric:tabular-nums;
+  text-shadow:0 0 12px #ffc22955;display:flex;align-items:baseline;gap:4px}
+.t span i{font-size:.8rem;font-style:normal;font-weight:600;opacity:.8}
+.t span.sch{color:#c9d3ee;text-shadow:none}
+.t span.now{font-size:1.35rem;align-items:center;animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:.45}}
+.t span.flip{animation:flip .45s ease-out}
+@keyframes flip{0%{transform:perspective(200px) rotateX(-90deg);opacity:.2}100%{transform:none;opacity:1}}
+.msg{padding:22px 16px;color:var(--mute)}
+.skel{height:86px;margin:12px 16px;border-radius:10px;background:linear-gradient(90deg,#ffffff08,#ffffff14,#ffffff08);background-size:200% 100%;animation:sh 1.2s infinite}
+@keyframes sh{to{background-position:-200% 0}}
+
+/* Info trafic */
+.status{margin-top:12px;border-radius:14px;padding:12px 14px;background:var(--panel);border:1px solid var(--rule);font-size:.95rem;animation:in .3s ease-out}
+@keyframes in{from{opacity:0;transform:translateY(4px)}}
+.status.ok{display:flex;align-items:center;gap:10px;font-weight:600}
+.status.ok::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green)}
+.status.warn{background:color-mix(in srgb,var(--amber) 12%,var(--panel));border-color:color-mix(in srgb,var(--amber) 40%,transparent)}
+.status.sev{background:color-mix(in srgb,var(--red) 14%,var(--panel));border-color:color-mix(in srgb,var(--red) 45%,transparent)}
+.status .h{display:flex;align-items:center;gap:8px;font-weight:700}
+.status.warn .h::before,.status.sev .h::before{content:"!";flex:none;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:.85rem;color:#111;background:var(--amber)}
+.status.sev .h::before{background:var(--red);color:#fff}
+.status p{margin:6px 0 0 28px;color:#c9d3ee;white-space:pre-line;font-weight:400;font-size:.9rem}
+.status div+div{margin-top:12px;padding-top:12px;border-top:1px solid var(--rule)}
+
+.foot{margin-top:14px;color:var(--mute);font-size:.8rem;display:flex;justify-content:space-between;gap:8px}
+.foot button{background:none;border:0;color:var(--mute);cursor:pointer;padding:0;font-size:.8rem;text-decoration:underline}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
 <main>
-  <h1>Prochains métros</h1>
-  <div class="lines" id="lines" role="group" aria-label="Ligne"></div>
-  <select id="stations" aria-label="Station" disabled><option>Choisis d'abord une ligne</option></select>
-  <div class="board" id="board" hidden aria-live="polite"></div>
+  <header><div class="logo" aria-hidden="true">M</div><h1>Prochains métros <span>· Paris</span></h1></header>
+  <p class="label" id="lines-label">Ligne</p>
+  <div class="lines" id="lines" role="group" aria-labelledby="lines-label"></div>
+  <label class="station">
+    <span class="badge" id="sel-badge" hidden></span>
+    <select id="stations" aria-label="Station" disabled><option>Choisis d'abord une ligne</option></select>
+  </label>
+  <section class="board" id="board" hidden aria-live="polite"></section>
   <div class="status" id="status" hidden aria-live="polite"></div>
   <p class="foot" id="foot"></p>
 </main>
 <script>
 const $ = id => document.getElementById(id);
 const store = { get:k=>{try{return localStorage.getItem(k)}catch{return null}}, set:(k,v)=>{try{localStorage.setItem(k,v)}catch{}} };
-let line = null, stop = null, timer = null;
-
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]);
 const api = async (p) => { const r = await fetch(p); if (!r.ok) throw new Error(r.status); return r.json(); };
+// Texte noir sur les couleurs claires (ligne 1, 5…), blanc sinon
+const inkFor = hex => { const n = parseInt(hex.slice(1), 16), [r, g, b] = [n >> 16, n >> 8 & 255, n & 255];
+  return (0.299 * r + 0.587 * g + 0.114 * b) > 165 ? "#111" : "#fff"; };
+
+let line = null, stop = null, timer = null, lines = {}, prev = {};
 
 async function init() {
   try {
-    const lines = await api("/api/lines");
+    const ls = await api("/api/lines");
     $("lines").innerHTML = "";
-    for (const l of lines) {
+    for (const l of ls) {
+      lines[l.id] = l;
       const b = document.createElement("button");
-      b.textContent = l.code; b.style.background = l.color; b.dataset.id = l.id;
+      b.textContent = l.code; b.style.background = l.color; b.style.color = inkFor(l.color); b.dataset.id = l.id;
       b.setAttribute("aria-label", "Ligne " + l.code); b.setAttribute("aria-pressed", "false");
       b.onclick = () => pickLine(l.id);
       $("lines").append(b);
     }
-    const last = store.get("line"); if (last) await pickLine(last, store.get("stop"));
+    const last = store.get("line"); if (last && lines[last]) await pickLine(last, store.get("stop"));
   } catch { $("foot").textContent = "Impossible de charger les lignes. Vérifie ta clé PRIM et relance le serveur."; }
 }
 
 async function pickLine(id, restoreStop) {
-  line = id; store.set("line", id);
+  line = id; stop = null; prev = {}; store.set("line", id);
+  const l = lines[id];
+  document.documentElement.style.setProperty("--line", l.color);
+  document.documentElement.style.setProperty("--line-ink", inkFor(l.color));
+  $("lines").classList.add("has-sel");
   document.querySelectorAll("#lines button").forEach(b => b.setAttribute("aria-pressed", b.dataset.id === id));
-  $("board").hidden = true; $("status").hidden = true; clearInterval(timer);
+  const badge = $("sel-badge"); badge.textContent = l.code; badge.hidden = false;
+  $("board").hidden = true; $("status").hidden = true; $("foot").textContent = ""; clearInterval(timer);
   const sel = $("stations"); sel.disabled = true; sel.innerHTML = "<option>Chargement…</option>";
   try {
     const st = await api("/api/stations?line=" + encodeURIComponent(id));
-    sel.innerHTML = '<option value="">Choisis ta station</option>' + st.map(s => `<option value="${s.id}">${s.name}</option>`).join("");
+    sel.innerHTML = '<option value="">Choisis ta station</option>' + st.map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join("");
     sel.disabled = false;
     if (restoreStop && st.some(s => s.id === restoreStop)) { sel.value = restoreStop; pickStop(restoreStop); }
   } catch { sel.innerHTML = "<option>Erreur de chargement</option>"; }
 }
 
+const head = '<div class="board-head"><span>Prochains passages</span><span class="live">Temps réel</span></div>';
+
+function timeCell(t, key) {
+  const label = t.mins === 0 ? "À quai" : `${t.mins}<i>min</i>`;
+  const cls = [t.realtime ? "" : "sch", t.mins === 0 ? "now" : "", prev[key] !== undefined && prev[key] !== t.mins ? "flip" : ""].join(" ");
+  prev[key] = t.mins;
+  return `<span class="${cls}">${label}</span>`;
+}
+
 async function refresh() {
   if (!line || !stop) return;
-  const b = $("board");
+  const b = $("board"), s = stop;
   try {
-    const d = await api(`/api/next?line=${encodeURIComponent(line)}&stop=${encodeURIComponent(stop)}`);
-    b.innerHTML = d.length ? d.map(x => `
-      <div class="dir"><b><small>Direction</small>${x.direction}</b>
-      <div class="t">${x.times.map(t => `<span class="${t.realtime ? "" : "sch"}">${t.mins === 0 ? "À quai" : t.mins}${t.mins ? "<i>min</i>" : ""}</span>`).join("")}</div></div>`).join("")
-      : '<div class="msg">Aucun passage prévu pour le moment.</div>';
-    $("foot").textContent = "Mis à jour à " + new Date().toLocaleTimeString("fr-FR", {hour:"2-digit", minute:"2-digit"}) + " · en clair = horaire théorique";
-  } catch { b.innerHTML = '<div class="msg">Données indisponibles. Nouvel essai dans 30 s.</div>'; }
+    const d = await api(`/api/next?line=${encodeURIComponent(line)}&stop=${encodeURIComponent(s)}`);
+    if (s !== stop) return;
+    b.innerHTML = head + (d.length ? d.map(x => `
+      <div class="dir"><div class="to">Direction</div><div class="name">${esc(x.direction)}</div>
+      <div class="t">${x.times.map((t, i) => timeCell(t, x.direction + i)).join("")}</div></div>`).join("")
+      : '<div class="msg">Aucun passage prévu pour le moment.</div>');
+    $("foot").innerHTML = `<span>Mis à jour à ${new Date().toLocaleTimeString("fr-FR", {hour:"2-digit", minute:"2-digit"})} · gris = horaire théorique</span><button type="button" id="reload">Actualiser</button>`;
+    $("reload").onclick = refresh;
+  } catch { b.innerHTML = head + '<div class="msg">Données indisponibles. Nouvel essai dans 30 s.</div>'; }
   b.hidden = false;
   loadStatus();
 }
 
 function pickStop(id) {
-  stop = id; store.set("stop", id); clearInterval(timer);
+  stop = id; prev = {}; store.set("stop", id); clearInterval(timer);
   if (!id) { $("board").hidden = true; $("status").hidden = true; return; }
+  $("board").innerHTML = head + '<div class="skel"></div><div class="skel"></div>'; $("board").hidden = false;
   refresh(); timer = setInterval(refresh, 30000);
 }
 
-const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]);
 async function loadStatus() {
   const el = $("status"), l = line;
   try {
     const d = await api("/api/disruptions?line=" + encodeURIComponent(l));
     if (l !== line) return;
-    el.className = "status " + (!d.length ? "ok" : d.some(i => i.severe) ? "sev" : "warn");
-    el.innerHTML = d.length ? d.map(i => `<div><b>${esc(i.title)}</b>${i.text ? `<p>${esc(i.text)}</p>` : ""}</div>`).join("") : "Trafic normal";
+    const cls = "status " + (!d.length ? "ok" : d.some(i => i.severe) ? "sev" : "warn");
+    const html = d.length ? d.map(i => `<div><div class="h">${esc(i.title)}</div>${i.text ? `<p>${esc(i.text)}</p>` : ""}</div>`).join("") : "Trafic normal";
+    if (el.className !== cls || el.innerHTML !== html) { el.className = cls; el.innerHTML = html; }
     el.hidden = false;
   } catch { el.hidden = true; }
 }
 
 $("stations").onchange = e => pickStop(e.target.value);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
 init();
 </script>
 </body>
