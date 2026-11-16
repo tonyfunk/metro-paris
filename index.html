@@ -34,34 +34,23 @@ select{width:100%;padding:14px;font-size:1rem;border-radius:10px;border:1px soli
 .t span.sch{color:#c9d3ee}
 .msg{padding:20px;color:var(--mute)}
 .foot{margin-top:12px;color:var(--mute);font-size:.8rem}
-.alerts{margin:16px 0 0;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
-.alerts .ok{padding:12px 14px;display:flex;align-items:center;gap:8px;color:var(--mute);font-size:.9rem}
-.alerts .ok::before{content:"";width:10px;height:10px;border-radius:50%;background:#2a9d4b}
-.alerts details{border-top:1px solid var(--line)}
-.alerts details:first-child{border-top:0}
-.alerts summary{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;list-style:none}
-.alerts summary::-webkit-details-marker{display:none}
-.alerts summary::after{content:"▾";margin-left:auto;color:var(--mute)}
-.alerts details[open] summary::after{content:"▴"}
-.alerts summary .tt{flex:1;min-width:0;font-size:.9rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.badge{flex:none;width:28px;height:28px;border-radius:50%;color:#fff;font-weight:700;font-size:.85rem;line-height:28px;text-align:center}
-.lvl{flex:none;width:8px;height:8px;border-radius:50%;background:var(--amber)}
-.lvl.sev{background:#e63946}
-.alerts .it{padding:0 14px 12px 52px;font-size:.85rem}
-.alerts .it b{display:block;margin-bottom:2px}
-.alerts .it p{margin:0;color:var(--mute);white-space:pre-line}
-.lines button{position:relative}
-.lines button[data-alert]::after{content:"";position:absolute;top:-2px;right:-2px;width:12px;height:12px;border-radius:50%;background:var(--amber);border:2px solid var(--bg)}
-.lines button[data-alert=sev]::after{background:#e63946}
+.status{margin-top:12px;border-radius:12px;padding:12px 14px;background:var(--card);border:1px solid var(--line);font-size:.9rem}
+.status.ok{display:flex;align-items:center;gap:8px;color:var(--mute)}
+.status.ok::before{content:"";width:10px;height:10px;border-radius:50%;background:#2a9d4b}
+.status.warn{border-left:4px solid var(--amber)}
+.status.sev{border-left:4px solid #e63946}
+.status b{display:block}
+.status p{margin:4px 0 0;color:var(--mute);white-space:pre-line}
+.status div+div{margin-top:10px}
 </style>
 </head>
 <body>
 <main>
-  <section class="alerts" id="alerts" aria-label="Info trafic" aria-live="polite"><div class="ok">Chargement de l'info trafic…</div></section>
   <h1>Prochains métros</h1>
   <div class="lines" id="lines" role="group" aria-label="Ligne"></div>
   <select id="stations" aria-label="Station" disabled><option>Choisis d'abord une ligne</option></select>
   <div class="board" id="board" hidden aria-live="polite"></div>
+  <div class="status" id="status" hidden aria-live="polite"></div>
   <p class="foot" id="foot"></p>
 </main>
 <script>
@@ -89,7 +78,7 @@ async function init() {
 async function pickLine(id, restoreStop) {
   line = id; store.set("line", id);
   document.querySelectorAll("#lines button").forEach(b => b.setAttribute("aria-pressed", b.dataset.id === id));
-  $("board").hidden = true; clearInterval(timer);
+  $("board").hidden = true; $("status").hidden = true; clearInterval(timer);
   const sel = $("stations"); sel.disabled = true; sel.innerHTML = "<option>Chargement…</option>";
   try {
     const st = await api("/api/stations?line=" + encodeURIComponent(id));
@@ -111,42 +100,29 @@ async function refresh() {
     $("foot").textContent = "Mis à jour à " + new Date().toLocaleTimeString("fr-FR", {hour:"2-digit", minute:"2-digit"}) + " · en clair = horaire théorique";
   } catch { b.innerHTML = '<div class="msg">Données indisponibles. Nouvel essai dans 30 s.</div>'; }
   b.hidden = false;
+  loadStatus();
 }
 
 function pickStop(id) {
   stop = id; store.set("stop", id); clearInterval(timer);
-  if (!id) { $("board").hidden = true; return; }
+  if (!id) { $("board").hidden = true; $("status").hidden = true; return; }
   refresh(); timer = setInterval(refresh, 30000);
 }
 
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]);
-let alertsByLine = {};
-
-function markLines() {
-  document.querySelectorAll("#lines button").forEach(b => {
-    const a = alertsByLine[b.dataset.id];
-    if (a) b.dataset.alert = a.items.some(i => i.severe) ? "sev" : "info"; else delete b.dataset.alert;
-  });
-}
-
-async function loadAlerts() {
-  const el = $("alerts");
+async function loadStatus() {
+  const el = $("status"), l = line;
   try {
-    const d = await api("/api/disruptions");
-    alertsByLine = Object.fromEntries(d.map(l => [l.id, l]));
-    el.innerHTML = d.length ? d.map(l => `
-      <details><summary><span class="badge" style="background:${esc(l.color)}">${esc(l.code)}</span>
-        <i class="lvl${l.items.some(i => i.severe) ? " sev" : ""}"></i><span class="tt">${esc(l.items[0].title)}${l.items.length > 1 ? ` (+${l.items.length - 1})` : ""}</span></summary>
-        ${l.items.map(i => `<div class="it"><b>${esc(i.title)}</b>${i.text ? `<p>${esc(i.text)}</p>` : ""}</div>`).join("")}
-      </details>`).join("")
-      : '<div class="ok">Trafic normal sur toutes les lignes</div>';
-  } catch { el.innerHTML = '<div class="ok">Info trafic indisponible</div>'; }
-  markLines();
+    const d = await api("/api/disruptions?line=" + encodeURIComponent(l));
+    if (l !== line) return;
+    el.className = "status " + (!d.length ? "ok" : d.some(i => i.severe) ? "sev" : "warn");
+    el.innerHTML = d.length ? d.map(i => `<div><b>${esc(i.title)}</b>${i.text ? `<p>${esc(i.text)}</p>` : ""}</div>`).join("") : "Trafic normal";
+    el.hidden = false;
+  } catch { el.hidden = true; }
 }
 
 $("stations").onchange = e => pickStop(e.target.value);
-init().then(markLines);
-loadAlerts(); setInterval(loadAlerts, 120000);
+init();
 </script>
 </body>
 </html>
