@@ -30,7 +30,6 @@ button,select{font:inherit;color:inherit}
 
 /* En-tête façon signalétique */
 header{display:flex;align-items:center;gap:10px;margin:8px 0 20px}
-.logo{width:34px;height:34px;border-radius:50%;border:2.5px solid var(--ink);display:grid;place-items:center;font:800 1.1rem/1 Barlow,sans-serif}
 header h1{margin:0;font-size:1.35rem;font-weight:700;letter-spacing:.01em}
 header h1 span{color:var(--mute);font-weight:500}
 
@@ -89,6 +88,37 @@ header h1 span{color:var(--mute);font-weight:500}
 .status p{margin:6px 0 0 28px;color:#c9d3ee;white-space:pre-line;font-weight:400;font-size:.9rem}
 .status div+div{margin-top:12px;padding-top:12px;border-top:1px solid var(--rule)}
 
+.iconbtn{flex:none;width:44px;height:44px;border-radius:50%;border:1px solid var(--rule);background:var(--panel);display:grid;place-items:center;cursor:pointer;padding:0;transition:transform .15s}
+.iconbtn:active{transform:scale(.9)}
+.iconbtn svg{width:22px;height:22px;fill:none;stroke:var(--ink);stroke-width:1.8;stroke-linejoin:round}
+.iconbtn.on svg{fill:var(--amber);stroke:var(--amber)}
+.iconbtn.pop{animation:pop .35s ease-out}
+@keyframes pop{50%{transform:scale(1.25)}}
+#fav-open{position:relative}
+#fav-open[data-n]::after{content:attr(data-n);position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:var(--amber);color:#111;font-size:.7rem;font-weight:800;display:grid;place-items:center}
+.station-row{display:flex;align-items:center;gap:10px}
+.station-row .station{flex:1;min-width:0}
+.station-row .iconbtn{width:52px;height:52px;border-radius:14px}
+
+/* Tiroir des favoris */
+.scrim{position:fixed;inset:0;background:#0009;opacity:0;pointer-events:none;transition:opacity .25s;z-index:10}
+.drawer{position:fixed;top:0;left:0;bottom:0;width:min(86vw,360px);background:var(--panel-2);border-right:1px solid var(--rule);z-index:11;
+  transform:translateX(-102%);transition:transform .28s cubic-bezier(.2,.8,.2,1);padding:calc(env(safe-area-inset-top) + 20px) 16px 24px;overflow-y:auto;box-shadow:10px 0 40px #0008}
+body.fav .scrim{opacity:1;pointer-events:auto}
+body.fav .drawer{transform:none}
+.drawer h2{display:flex;align-items:center;gap:10px;margin:0 0 18px;font-size:1.3rem}
+.drawer h2 svg{width:22px;height:22px;fill:var(--amber)}
+.drawer h2 button{margin-left:auto;background:none;border:0;color:var(--mute);font-size:1.6rem;line-height:1;cursor:pointer;padding:4px 8px}
+.favs{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.favs li{display:flex;align-items:center;background:var(--panel);border:1px solid var(--rule);border-radius:12px;overflow:hidden}
+.favs li.cur{border-color:var(--amber)}
+.favs .go{flex:1;min-width:0;display:flex;align-items:center;gap:12px;background:none;border:0;padding:12px;text-align:left;cursor:pointer}
+.favs .go .badge{width:34px;height:34px}
+.favs .go b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:1.05rem}
+.favs .del{flex:none;background:none;border:0;color:var(--mute);font-size:1.3rem;padding:12px 14px;cursor:pointer}
+.empty{color:var(--mute);font-size:.95rem;line-height:1.5}
+.empty svg{width:1em;height:1em;vertical-align:-2px;fill:none;stroke:currentColor;stroke-width:2}
+
 .foot{margin-top:14px;color:var(--mute);font-size:.8rem;display:flex;justify-content:space-between;gap:8px}
 .foot button{background:none;border:0;color:var(--mute);cursor:pointer;padding:0;font-size:.8rem;text-decoration:underline}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -96,17 +126,25 @@ header h1 span{color:var(--mute);font-weight:500}
 </head>
 <body>
 <main>
-  <header><div class="logo" aria-hidden="true">M</div><h1>Prochains métros <span>· Paris</span></h1></header>
+  <header><button class="iconbtn" id="fav-open" type="button" aria-label="Mes favoris" aria-controls="drawer" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8l2.8 5.7 6.3.9-4.55 4.44 1.07 6.26L12 17.14l-5.62 2.96 1.07-6.26L2.9 9.4l6.3-.9z"/></svg></button><h1>Prochains métros <span>· Paris</span></h1></header>
   <p class="label" id="lines-label">Ligne</p>
   <div class="lines" id="lines" role="group" aria-labelledby="lines-label"></div>
-  <label class="station">
-    <span class="badge" id="sel-badge" hidden></span>
-    <select id="stations" aria-label="Station" disabled><option>Choisis d'abord une ligne</option></select>
-  </label>
+  <div class="station-row">
+    <label class="station">
+      <span class="badge" id="sel-badge" hidden></span>
+      <select id="stations" aria-label="Station" disabled><option>Choisis d'abord une ligne</option></select>
+    </label>
+    <button class="iconbtn" id="fav-toggle" type="button" aria-pressed="false" aria-label="Ajouter aux favoris" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8l2.8 5.7 6.3.9-4.55 4.44 1.07 6.26L12 17.14l-5.62 2.96 1.07-6.26L2.9 9.4l6.3-.9z"/></svg></button>
+  </div>
   <section class="board" id="board" hidden aria-live="polite"></section>
   <div class="status" id="status" hidden aria-live="polite"></div>
   <p class="foot" id="foot"></p>
 </main>
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-label="Favoris" inert>
+  <h2><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8l2.8 5.7 6.3.9-4.55 4.44 1.07 6.26L12 17.14l-5.62 2.96 1.07-6.26L2.9 9.4l6.3-.9z"/></svg>Mes favoris<button type="button" id="fav-close" aria-label="Fermer">×</button></h2>
+  <ul class="favs" id="favs"></ul>
+</aside>
 <script>
 const $ = id => document.getElementById(id);
 const store = { get:k=>{try{return localStorage.getItem(k)}catch{return null}}, set:(k,v)=>{try{localStorage.setItem(k,v)}catch{}} };
@@ -135,7 +173,7 @@ async function init() {
 }
 
 async function pickLine(id, restoreStop) {
-  line = id; stop = null; prev = {}; store.set("line", id);
+  line = id; stop = null; prev = {}; store.set("line", id); renderFavs();
   const l = lines[id];
   document.documentElement.style.setProperty("--line", l.color);
   document.documentElement.style.setProperty("--line-ink", inkFor(l.color));
@@ -179,7 +217,7 @@ async function refresh() {
 }
 
 function pickStop(id) {
-  stop = id; prev = {}; store.set("stop", id); clearInterval(timer);
+  stop = id; prev = {}; store.set("stop", id); clearInterval(timer); renderFavs();
   if (!id) { $("board").hidden = true; $("status").hidden = true; return; }
   $("board").innerHTML = head + '<div class="skel"></div><div class="skel"></div>'; $("board").hidden = false;
   refresh(); timer = setInterval(refresh, 30000);
@@ -198,6 +236,56 @@ async function loadStatus() {
 }
 
 $("stations").onchange = e => pickStop(e.target.value);
+
+// ---- Favoris (stockés sur l'appareil) ----
+const STAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8l2.8 5.7 6.3.9-4.55 4.44 1.07 6.26L12 17.14l-5.62 2.96 1.07-6.26L2.9 9.4l6.3-.9z"/></svg>';
+const loadFavs = () => { try { return JSON.parse(store.get("favs")) || []; } catch { return []; } };
+let favs = loadFavs();
+const saveFavs = () => store.set("favs", JSON.stringify(favs));
+const isFav = () => favs.some(f => f.line === line && f.stop === stop);
+
+function renderFavs() {
+  const t = $("fav-toggle"), on = !!(line && stop) && isFav();
+  t.hidden = !(line && stop);
+  t.classList.toggle("on", on); t.setAttribute("aria-pressed", on);
+  t.setAttribute("aria-label", on ? "Retirer des favoris" : "Ajouter aux favoris");
+  const o = $("fav-open"); o.classList.toggle("on", favs.length > 0);
+  if (favs.length) o.dataset.n = favs.length; else delete o.dataset.n;
+  $("favs").innerHTML = favs.length ? favs.map((f, i) => {
+    const l = lines[f.line] || f;
+    return `<li class="${f.line === line && f.stop === stop ? "cur" : ""}">
+      <button class="go" type="button" data-i="${i}"><span class="badge" style="background:${esc(l.color)};color:${inkFor(l.color)}">${esc(l.code)}</span><b>${esc(f.name)}</b></button>
+      <button class="del" type="button" data-del="${i}" aria-label="Retirer ${esc(f.name)}">×</button></li>`;
+  }).join("") : `<p class="empty">Aucun favori pour l'instant.<br>Choisis une ligne et une station, puis touche ${STAR} à côté du nom.</p>`;
+}
+
+function toggleFav() {
+  if (!line || !stop) return;
+  if (isFav()) favs = favs.filter(f => !(f.line === line && f.stop === stop));
+  else {
+    const l = lines[line], sel = $("stations");
+    favs.push({ line, stop, name: sel.options[sel.selectedIndex].text, code: l.code, color: l.color });
+  }
+  saveFavs(); renderFavs();
+  const t = $("fav-toggle"); t.classList.remove("pop"); void t.offsetWidth; t.classList.add("pop");
+}
+
+function drawer(open) {
+  document.body.classList.toggle("fav", open);
+  $("drawer").inert = !open; $("fav-open").setAttribute("aria-expanded", open);
+  if (open) $("fav-close").focus(); else $("fav-open").focus({ preventScroll: true });
+}
+
+$("fav-toggle").onclick = toggleFav;
+$("fav-open").onclick = () => drawer(true);
+$("fav-close").onclick = $("scrim").onclick = () => drawer(false);
+document.addEventListener("keydown", e => { if (e.key === "Escape" && document.body.classList.contains("fav")) drawer(false); });
+$("favs").onclick = async e => {
+  const del = e.target.closest("[data-del]"), go = e.target.closest("[data-i]");
+  if (del) { favs.splice(+del.dataset.del, 1); saveFavs(); renderFavs(); }
+  else if (go) { const f = favs[+go.dataset.i]; drawer(false); if (lines[f.line]) await pickLine(f.line, f.stop); }
+};
+renderFavs();
 document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
 init();
 </script>
