@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Prochains métros · Paris</title>
+<title>Prochains passages · Paris</title>
 <link rel="manifest" href="/manifest.json">
 <link rel="apple-touch-icon" href="/icon-180.png">
 <meta name="theme-color" content="#0b1630">
@@ -39,6 +39,9 @@ header h1 span{color:var(--mute);font-weight:500}
 .lines button{aspect-ratio:1;border:0;border-radius:50%;font-weight:800;font-size:1.05rem;cursor:pointer;padding:0;
   box-shadow:0 2px 0 #0004 inset,0 3px 10px #0003;transition:transform .15s,opacity .2s,box-shadow .2s}
 .lines button:active{transform:scale(.92)}
+.lines button.bus{grid-column:span 2;aspect-ratio:auto;height:44px;border-radius:10px}
+.lines.has-sel button.bus[aria-pressed=true]{transform:scale(1.05)}
+.badge.bus{border-radius:8px;width:auto!important;min-width:38px;padding:0 8px}
 .lines.has-sel button{opacity:.38}
 .lines.has-sel button[aria-pressed=true]{opacity:1;transform:scale(1.1);box-shadow:0 0 0 3px var(--bg),0 0 0 5px var(--ink)}
 
@@ -126,9 +129,11 @@ body.fav .drawer{transform:none}
 </head>
 <body>
 <main>
-  <header><h1>Prochains métros <span>· Paris</span></h1><button class="iconbtn" id="fav-open" type="button" aria-label="Mes favoris" aria-controls="drawer" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8l2.8 5.7 6.3.9-4.55 4.44 1.07 6.26L12 17.14l-5.62 2.96 1.07-6.26L2.9 9.4l6.3-.9z"/></svg></button></header>
-  <p class="label" id="lines-label">Ligne</p>
+  <header><h1>Prochains passages <span>· Paris</span></h1><button class="iconbtn" id="fav-open" type="button" aria-label="Mes favoris" aria-controls="drawer" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8l2.8 5.7 6.3.9-4.55 4.44 1.07 6.26L12 17.14l-5.62 2.96 1.07-6.26L2.9 9.4l6.3-.9z"/></svg></button></header>
+  <p class="label" id="lines-label">Métro</p>
   <div class="lines" id="lines" role="group" aria-labelledby="lines-label"></div>
+  <p class="label" id="buses-label" hidden>Bus</p>
+  <div class="lines buses" id="buses" role="group" aria-labelledby="buses-label" hidden></div>
   <div class="station-row">
     <label class="station">
       <span class="badge" id="sel-badge" hidden></span>
@@ -159,14 +164,16 @@ let line = null, stop = null, timer = null, lines = {}, prev = {};
 async function init() {
   try {
     const ls = await api("/api/lines");
-    $("lines").innerHTML = "";
+    $("lines").innerHTML = ""; $("buses").innerHTML = "";
     for (const l of ls) {
       lines[l.id] = l;
       const b = document.createElement("button");
       b.textContent = l.code; b.style.background = l.color; b.style.color = inkFor(l.color); b.dataset.id = l.id;
-      b.setAttribute("aria-label", "Ligne " + l.code); b.setAttribute("aria-pressed", "false");
+      const bus = l.mode === "bus"; if (bus) b.className = "bus";
+      b.setAttribute("aria-label", (bus ? "Bus " : "Ligne ") + l.code); b.setAttribute("aria-pressed", "false");
       b.onclick = () => pickLine(l.id);
-      $("lines").append(b);
+      $(bus ? "buses" : "lines").append(b);
+      if (bus) $("buses").hidden = $("buses-label").hidden = false;
     }
     const last = store.get("line"); if (last && lines[last]) await pickLine(last, store.get("stop"));
   } catch { $("foot").textContent = "Impossible de charger les lignes. Vérifie ta clé PRIM et relance le serveur."; }
@@ -177,14 +184,14 @@ async function pickLine(id, restoreStop) {
   const l = lines[id];
   document.documentElement.style.setProperty("--line", l.color);
   document.documentElement.style.setProperty("--line-ink", inkFor(l.color));
-  $("lines").classList.add("has-sel");
-  document.querySelectorAll("#lines button").forEach(b => b.setAttribute("aria-pressed", b.dataset.id === id));
-  const badge = $("sel-badge"); badge.textContent = l.code; badge.hidden = false;
+  $("lines").classList.add("has-sel"); $("buses").classList.add("has-sel");
+  document.querySelectorAll("#lines button, #buses button").forEach(b => b.setAttribute("aria-pressed", b.dataset.id === id));
+  const badge = $("sel-badge"); badge.textContent = l.code; badge.hidden = false; badge.classList.toggle("bus", l.mode === "bus");
   $("board").hidden = true; $("status").hidden = true; $("foot").textContent = ""; clearInterval(timer);
   const sel = $("stations"); sel.disabled = true; sel.innerHTML = "<option>Chargement…</option>";
   try {
     const st = await api("/api/stations?line=" + encodeURIComponent(id));
-    sel.innerHTML = '<option value="">Choisis ta station</option>' + st.map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join("");
+    sel.innerHTML = `<option value="">${l.mode === "bus" ? "Choisis ton arrêt" : "Choisis ta station"}</option>` + st.map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join("");
     sel.disabled = false;
     if (restoreStop && st.some(s => s.id === restoreStop)) { sel.value = restoreStop; pickStop(restoreStop); }
   } catch { sel.innerHTML = "<option>Erreur de chargement</option>"; }
@@ -254,7 +261,7 @@ function renderFavs() {
   $("favs").innerHTML = favs.length ? favs.map((f, i) => {
     const l = lines[f.line] || f;
     return `<li class="${f.line === line && f.stop === stop ? "cur" : ""}">
-      <button class="go" type="button" data-i="${i}"><span class="badge" style="background:${esc(l.color)};color:${inkFor(l.color)}">${esc(l.code)}</span><b>${esc(f.name)}</b></button>
+      <button class="go" type="button" data-i="${i}"><span class="badge${l.mode === "bus" ? " bus" : ""}" style="background:${esc(l.color)};color:${inkFor(l.color)}">${esc(l.code)}</span><b>${esc(f.name)}</b></button>
       <button class="del" type="button" data-del="${i}" aria-label="Retirer ${esc(f.name)}">×</button></li>`;
   }).join("") : `<p class="empty">Aucun favori pour l'instant.<br>Choisis une ligne et une station, puis touche ${STAR} à côté du nom.</p>`;
 }
@@ -264,7 +271,7 @@ function toggleFav() {
   if (isFav()) favs = favs.filter(f => !(f.line === line && f.stop === stop));
   else {
     const l = lines[line], sel = $("stations");
-    favs.push({ line, stop, name: sel.options[sel.selectedIndex].text, code: l.code, color: l.color });
+    favs.push({ line, stop, name: sel.options[sel.selectedIndex].text, code: l.code, color: l.color, mode: l.mode });
   }
   saveFavs(); renderFavs();
   const t = $("fav-toggle"); t.classList.remove("pop"); void t.offsetWidth; t.classList.add("pop");
