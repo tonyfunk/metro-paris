@@ -94,7 +94,7 @@ header h1 span{color:var(--mute);font-weight:500}
 .iconbtn.on svg{fill:var(--amber);stroke:var(--amber)}
 .iconbtn.pop{animation:pop .35s ease-out}
 @keyframes pop{50%{transform:scale(1.25)}}
-#fav-open{position:relative}
+#fav-open{position:relative;margin-left:auto}
 #fav-open[data-n]::after{content:attr(data-n);position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:var(--amber);color:#111;font-size:.7rem;font-weight:800;display:grid;place-items:center}
 .station-row{display:flex;align-items:center;gap:10px}
 .station-row .station{flex:1;min-width:0}
@@ -102,8 +102,8 @@ header h1 span{color:var(--mute);font-weight:500}
 
 /* Tiroir des favoris */
 .scrim{position:fixed;inset:0;background:#0009;opacity:0;pointer-events:none;transition:opacity .25s;z-index:10}
-.drawer{position:fixed;top:0;left:0;bottom:0;width:min(86vw,360px);background:var(--panel-2);border-right:1px solid var(--rule);z-index:11;
-  transform:translateX(-102%);transition:transform .28s cubic-bezier(.2,.8,.2,1);padding:calc(env(safe-area-inset-top) + 20px) 16px 24px;overflow-y:auto;box-shadow:10px 0 40px #0008}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(86vw,360px);background:var(--panel-2);border-left:1px solid var(--rule);z-index:11;
+  transform:translateX(102%);transition:transform .28s cubic-bezier(.2,.8,.2,1);padding:calc(env(safe-area-inset-top) + 20px) 16px 24px;overflow-y:auto;box-shadow:-10px 0 40px #0008}
 body.fav .scrim{opacity:1;pointer-events:auto}
 body.fav .drawer{transform:none}
 .drawer h2{display:flex;align-items:center;gap:10px;margin:0 0 18px;font-size:1.3rem}
@@ -126,7 +126,7 @@ body.fav .drawer{transform:none}
 </head>
 <body>
 <main>
-  <header><button class="iconbtn" id="fav-open" type="button" aria-label="Mes favoris" aria-controls="drawer" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8l2.8 5.7 6.3.9-4.55 4.44 1.07 6.26L12 17.14l-5.62 2.96 1.07-6.26L2.9 9.4l6.3-.9z"/></svg></button><h1>Prochains métros <span>· Paris</span></h1></header>
+  <header><h1>Prochains métros <span>· Paris</span></h1><button class="iconbtn" id="fav-open" type="button" aria-label="Mes favoris" aria-controls="drawer" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8l2.8 5.7 6.3.9-4.55 4.44 1.07 6.26L12 17.14l-5.62 2.96 1.07-6.26L2.9 9.4l6.3-.9z"/></svg></button></header>
   <p class="label" id="lines-label">Ligne</p>
   <div class="lines" id="lines" role="group" aria-labelledby="lines-label"></div>
   <div class="station-row">
